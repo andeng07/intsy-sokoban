@@ -1,54 +1,99 @@
-import time
-
-
 class SokoBot:
     def __init__(self):
-        self.player = None
-        self.crates = set()
-        self.goals = set()
+        self.board = None
 
-    def solveSokobanPuzzle(self, width, height, mapData, itemsData):
-        self.initialize(width, height, mapData, itemsData)
-
-        print("Player: " + str(self.player))
-        print("Crates: " + str(self.crates))
-        print("Goals: " + str(self.goals))
-
-        self.heuristic()
-
+    def solveSokobanPuzzle(self, width, height, map_data, items_data):
         return ""
 
-    def initialize(self, width, height, mapData, itemsData):
-        self.player = ()
-        for i in range(height):
-            for j in range(width):
-                print(itemsData[i][j], end="")
-                if mapData[i][j] == '.':
+class Board:
+    def __init__(self, width, height, map_data, items_data):
+        self.state = None
+        self.walls = set()
+        self.goals = set()
+        self.player = None
+        self.crates = set()
+
+        for i in height:
+            for j in width:
+                if map_data[i][j] == '#':
+                    self.walls.add((i, j))
+                if (map_data[i][j] == '.'):
                     self.goals.add((i, j))
-                if itemsData[i][j] == '$':
-                    self.crates.add((i, j))
-                if itemsData[i][j] == '@':
+                if (items_data[i][j] == '@'):
                     self.player = (i, j)
-            print()
+                if (items_data[i][j] == '#'):
+                    self.crates.add((i, j))
+
+        self.state = State(self.player, self.crates, self)
+
+
+class State:
+    def __init__(self, board, player, crates):
+        self.board = board
+        self.player = player
+        self.crates = frozenset(crates)
 
     def heuristic(self):
-        playerToCrates = dict()
-        createsToGoal = dict()
+        if not self.crates or not self.board.goals:
+            return 0
 
-        for i in self.crates:
-            playerToCrates[i] = self.get_distance(self.player, i)
+        player_to_crate = min(
+            self.distance(self.player, crate)
+            for crate in self.crates
+        )
 
-        print("Player to Boxes Distance: " + str(playerToCrates))
-        print("Minumum Player to Box Distance: " + str(min(playerToCrates, key=playerToCrates.get)))
+        crate_to_goal = min(
+            self.distance(crate, goal)
+            for crate in self.crates
+            for goal in self.board.goals
+        )
 
-        for i in self.crates:
-            for j in self.goals:
-                createsToGoal[i, j] = self.get_distance(i, j)
+        return player_to_crate + crate_to_goal
 
-        print("Boxes to Goals Distance: " + str(createsToGoal))
-        print("Minumum Box to Goal Distance: " + str(min(createsToGoal, key=createsToGoal.get)))
-
-        return 0
-
-    def get_distance(self, a, b):
+    def distance(self, a, b):
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    def get_successors(self):
+        successors = []
+
+        directions = [
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1)
+        ]
+
+        for dr, dc in directions:
+            next_player = (
+                self.player[0] + dr,
+                self.player[1] + dc
+            )
+
+            if next_player in self.board.walls:
+                continue
+
+            next_crates = set(self.crates)
+
+            if next_player in self.crates:
+                next_crate = (
+                    next_player[0] + dr,
+                    next_player[1] + dc
+                )
+
+                if next_crate in self.board.walls:
+                    continue
+
+                if next_crate in self.crates:
+                    continue
+
+                next_crates.remove(next_player)
+                next_crates.add(next_crate)
+
+            successors.append(
+                State(next_player, next_crates, self.board)
+            )
+
+        return successors
+
+    def from_raw(width, height, map_data, items_data):
+        for
