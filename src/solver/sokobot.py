@@ -32,6 +32,7 @@ class SokoBot:
     def distance(self, a, b):
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
+
 class Board:
     def __init__(self, width, height, map_data, items_data):
         self.walls = set()
@@ -44,24 +45,20 @@ class Board:
 
         for i in range(height):
             for j in range(width):
-                if map_data[i][j] == '#':
+                if map_data[i][j] == "#":
                     self.walls.add((i, j))
-                if (map_data[i][j] == '.'):
+                if map_data[i][j] == ".":
                     self.goals.add((i, j))
-                if (items_data[i][j] == '@'):
+                if items_data[i][j] == "@":
                     player = (i, j)
-                if (items_data[i][j] == '$'):
+                if items_data[i][j] == "$":
                     crates.add((i, j))
 
         self.state = State(self, player, frozenset(crates))
 
+
 class State:
-    DIRECTIONS = (
-        (-1, 0),
-        (1, 0),
-        (0, -1),
-        (0, 1)
-    )
+    DIRECTIONS = ((-1, 0), (1, 0), (0, -1), (0, 1))
 
     def __init__(self, board, player, crates):
         self.board = board
@@ -73,7 +70,7 @@ class State:
 
         player_r, player_c = self.player
 
-        for dir_r, dir_c in self.DIRECTIONS:
+        for i, (dir_r, dir_c) in enumerate(self.DIRECTIONS):
             next_player_position = (
                 player_r + dir_r,
                 player_c + dir_c,
@@ -102,10 +99,13 @@ class State:
                 new_crates_positions.add(next_crate_position)
 
             successors.add(
-                State(
-                    self.board,
-                    next_player_position,
-                    frozenset(new_crates_positions),
+                (
+                    i,
+                    State(
+                        self.board,
+                        next_player_position,
+                        frozenset(new_crates_positions),
+                    ),
                 )
             )
 
@@ -115,10 +115,7 @@ class State:
         if not isinstance(other, State):
             return NotImplemented
 
-        return (
-            self.player == other.player
-            and self.crates == other.crates
-        )
+        return self.player == other.player and self.crates == other.crates
 
     def __hash__(self):
         return hash((self.player, self.crates))
