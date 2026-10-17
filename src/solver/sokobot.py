@@ -41,8 +41,6 @@ class Board:
         crates = set()
         player = None
 
-        self.state = None
-
         for i in range(height):
             for j in range(width):
                 if map_data[i][j] == "#":
