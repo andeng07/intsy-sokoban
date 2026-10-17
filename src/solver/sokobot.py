@@ -5,9 +5,32 @@ class SokoBot:
     def solveSokobanPuzzle(self, width, height, mapData, itemsData):
         self.board = Board(width, height, mapData, itemsData)
 
-        # while self.board.state.heuristic() != 0:
+        currentMoves = 0
+        maxMoves = 100
+
+        while self.heuristic(self.board.state) != 0 and currentMoves < maxMoves:
+            # select next state
+            maxMoves += 1
+            break
 
         return ""
+
+    def heuristic(self, state):
+        unresolved_crates = state.crates - state.board.goals
+
+        component1 = self.closest_crate_to_player(state.player, unresolved_crates)
+        component2 = self.closest_goal_to_crate(unresolved_crates, state.board.goals)
+
+        return component1 + component2 - 1
+
+    def closest_crate_to_player(self, player, crates):
+        return min(self.distance(player, crate) for crate in crates)
+
+    def closest_goal_to_crate(self, crates, goals):
+        return min(self.distance(crate, goal) for crate in crates for goal in goals)
+
+    def distance(self, a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 class Board:
     def __init__(self, width, height, map_data, items_data):
