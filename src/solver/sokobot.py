@@ -87,3 +87,15 @@ class State:
             )
 
         return successors
+
+    def __eq__(self, other):
+        if not isinstance(other, State):
+            return NotImplemented
+
+        return (
+            self.player == other.player
+            and self.crates == other.crates
+        )
+
+    def __hash__(self):
+        return hash((self.player, self.crates))
