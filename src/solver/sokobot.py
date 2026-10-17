@@ -1,50 +1,23 @@
-import time
-
 class SokoBot:
     def __init__(self):
-        self.player = None
-        self.crates = set()
-        self.goals = set()
-        self.walls = set()
         self.board = None
-        self.state = None
-        self.width = None
-        self.height = None
 
     def solveSokobanPuzzle(self, width, height, mapData, itemsData):
-        
         self.board = Board(width, height, mapData, itemsData)
-        
-        self.player = self.board.player
-        self.crates = self.board.crates
-        self.goals = self.board.goals
-        self.walls = self.board.walls
-        self.width = width
-        self.height = height
 
-        self.state = State(self)
+        # while self.board.state.heuristic() != 0:
 
-        print("Player: " + str(self.player))
-        print("Crates: " + str(self.crates))
-        print("Goals: " + str(self.goals))
-
-        self.state.heuristic()
-
-        currentState = (self.player, self.crates)
-        
-        actions = self.state.nextState(currentState)
-        print("Possible next states:", actions)
         return ""
 
 class Board:
     def __init__(self, width, height, map_data, items_data):
-        self.width = width
-        self.height = height
-        self.state = None
         self.walls = set()
         self.goals = set()
-        self.player = None
-        self.crates = set()
+
+        crates = set()
+        player = None
+
+        self.state = None
 
         for i in range(height):
             for j in range(width):
@@ -53,72 +26,64 @@ class Board:
                 if (map_data[i][j] == '.'):
                     self.goals.add((i, j))
                 if (items_data[i][j] == '@'):
-                    self.player = (i, j)
+                    player = (i, j)
                 if (items_data[i][j] == '$'):
-                    self.crates.add((i, j))
+                    crates.add((i, j))
 
-        self.state = (self.player, self.crates)
+        self.state = (self, player, crates)
 
 class State:
-    def __init__(self, board):
-        self.player = board.player
-        self.crates = board.crates
-        self.goals = board.goals
-        self.walls = board.walls
-        self.width = board.width
-        self.height = board.height
+    DIRECTIONS = (
+        (-1, 0),
+        (1, 0),
+        (0, -1),
+        (0, 1)
+    )
 
-    def heuristic(self):
-        playerToCrates = dict()
-        cratesToGoals = dict()
+    def __init__(self, board, player, crates):
+        self.board = board
+        self.player = player
+        self.crates = crates
 
-        for i in self.crates:
-            playerToCrates[i] = self.get_distance(self.player, i)
+    def get_successors(self):
+        successors = set()
 
-        if playerToCrates:
-            print("Player to Boxes Distance: " + str(playerToCrates))
-            print("Minimum Player to Crate Distance:", str(min(playerToCrates.values())))
+        player_r, player_c = self.player
 
-        for i in self.crates:
-            for j in self.goals:
-                cratesToGoals[i, j] = self.get_distance(i, j)
+        for dir_r, dir_c in self.DIRECTIONS:
+            next_player_position = (
+                player_r + dir_r,
+                player_c + dir_c,
+            )
 
-        if playerToCrates:
-            print("Boxes to Goals Distance: ", str(cratesToGoals))
-            print("Minumum Player to Box Distance: " + str(min(playerToCrates.values())))
-
-        return 0
-
-    def get_distance(self, a, b):
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
-
-    def allCratesOnGoals(self, state):
-        player, crates = state
-        return crates == self.goals
-
-    def nextState(self, state):
-        player, crates = state
-        player_row, player_col = player
-        nextStates = []
-
-        actions = [(-1,0),(1,0),(0,-1),(0,1)]
-
-        for r, c in actions:
-            newPlayerPos = (player_row + r, player_col + c)
-            newPlayerRow, newPlayerCol = newPlayerPos
-
-            if newPlayerPos in self.walls:
+            if next_player_position in self.board.walls:
                 continue
-            
-            if newPlayerPos in crates:
-                newCratesPos = (newPlayerRow + r, newPlayerCol + c)
 
-                if newCratesPos in self.walls or newCratesPos in crates:
+            new_crates_positions = set(self.crates)
+
+            if next_player_position in self.crates:
+                crate_r, crate_c = next_player_position
+
+                next_crate_position = (
+                    crate_r + dir_r,
+                    crate_c + dir_c,
+                )
+
+                if (
+                    next_crate_position in self.board.walls
+                    or next_crate_position in self.crates
+                ):
                     continue
-                
-                updatedCrates = (crates - {newPlayerPos}) | {newCratesPos}
-                nextStates.append((newPlayerPos, updatedCrates))
 
-            else:
-                nextStates.append((newPlayerPos, crates))
-        return nextStates
+                new_crates_positions.remove(next_player_position)
+                new_crates_positions.add(next_crate_position)
+
+            successors.add(
+                State(
+                    self.board,
+                    next_player_position,
+                    frozenset(new_crates_positions),
+                )
+            )
+
+        return successors
