@@ -30,7 +30,7 @@ class Board:
                 if (items_data[i][j] == '$'):
                     crates.add((i, j))
 
-        self.state = (self, player, crates)
+        self.state = State(self, player, crates)
 
 class State:
     DIRECTIONS = (
