@@ -1,33 +1,77 @@
+import heapq
+from itertools import count
+
+
 class SokoBot:
     def __init__(self):
         self.board = None
 
     def solveSokobanPuzzle(self, width, height, mapData, itemsData):
         self.board = Board(width, height, mapData, itemsData)
+        directions = ("u", "d", "l", "r")
 
-        currentMoves = 0
-        maxMoves = 100
+        initial_h = self.heuristic(self.board.state)
+        counter = count()
 
-        while self.heuristic(self.board.state) != 0 and currentMoves < maxMoves:
-            # select next state
-            maxMoves += 1
-            break
+        pq = [(initial_h, 0, next(counter), self.board.state, [])]
+        visited = set()
 
-        return ""
+        print("Player: " + str(self.board.state.player))
+        print("Crates: " + str(self.board.state.crates))
+        print("Walls: " + str(self.board.walls))
+        print("Goals: " + str(self.board.goals))
+
+        while pq:
+            _, g, _, current_state, path = heapq.heappop(pq)
+
+            if self.heuristic(current_state) == 0:
+                print(f"Solved in {g} moves!")
+                print("Moves:", path)
+                return path
+
+            if current_state in visited:
+                continue
+            visited.add(current_state)
+
+            for i, next_state in current_state.get_successors():
+                if next_state in visited or self.is_deadlock(next_state):
+                    continue
+
+                new_g = g + 1
+                new_h = self.heuristic(next_state)
+                new_f = new_g + new_h
+
+                new_path = path + [directions[i]]
+                heapq.heappush(pq, (new_f, new_g, next(counter), next_state, new_path))
+
+        print("No solution found.")
+        return []
 
     def heuristic(self, state):
         unresolved_crates = state.crates - state.board.goals
+
+        if not unresolved_crates:
+            return 0
 
         component1 = self.closest_crate_to_player(state.player, unresolved_crates)
         component2 = self.closest_goal_to_crate(unresolved_crates, state.board.goals)
 
         return component1 + component2 - 1
 
+    def is_deadlock(self, state):
+        return False
+
     def closest_crate_to_player(self, player, crates):
         return min(self.distance(player, crate) for crate in crates)
 
     def closest_goal_to_crate(self, crates, goals):
-        return min(self.distance(crate, goal) for crate in crates for goal in goals)
+        if not crates:
+            return 0
+
+        return sum(
+            min(self.distance(crate, goal) for goal in goals)
+            for crate in crates
+        )
 
     def distance(self, a, b):
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
@@ -65,7 +109,6 @@ class State:
 
     def get_successors(self):
         successors = set()
-
         player_r, player_c = self.player
 
         for i, (dir_r, dir_c) in enumerate(self.DIRECTIONS):
@@ -81,7 +124,6 @@ class State:
 
             if next_player_position in self.crates:
                 crate_r, crate_c = next_player_position
-
                 next_crate_position = (
                     crate_r + dir_r,
                     crate_c + dir_c,
@@ -112,7 +154,6 @@ class State:
     def __eq__(self, other):
         if not isinstance(other, State):
             return NotImplemented
-
         return self.player == other.player and self.crates == other.crates
 
     def __hash__(self):
